@@ -6,7 +6,7 @@ from app.client import fetch_weather
 from app.db import init_db
 from app.schema import WeatherRecordOut,  WeatherRecordHistoryOut
 from app.crud import save_record, get_updated_record, delete_all_records, get_city_records_history
-
+from app.services.blocker import block_on_shabbat_logic
 
 
 @asynccontextmanager
@@ -21,6 +21,13 @@ async def lifespan(app: FastAPI):
     # consider `suppress(asyncio.CancelledError): await task`
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.middleware("http")
+async def block_on_shabbat(request, call_next):
+    if blocked_response := block_on_shabbat_logic():
+        return blocked_response
+    return await call_next(request)
 
 
 @app.get("/weather", response_model=WeatherRecordOut)
