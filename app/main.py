@@ -23,7 +23,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-
 @app.get("/weather", response_model=WeatherRecordOut)
 async def get_weather(city : str ="Tel Aviv") -> WeatherRecordOut:
     if not (last_record := await get_updated_record(city)):
