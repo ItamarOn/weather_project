@@ -1,16 +1,23 @@
+import asyncio
 from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
 
 from app.client import fetch_weather
 from app.db import init_db
-from app.crud import save_record, get_updated_record, delete_all_records
+from app.crud import save_record, get_updated_record, delete_all_records, get_city_records_history
+
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """ background task starts at startup """
+    from app.services.fetcher import periodic_fetch_weather
+
     await init_db()
+    task = asyncio.create_task(periodic_fetch_weather())
     yield
+    task.cancel()
+    # consider `suppress(asyncio.CancelledError): await task`
 
 app = FastAPI(lifespan=lifespan)
 
@@ -24,9 +31,20 @@ async def get_weather(city : str ="Tel Aviv"):
 
 @app.post("/weather/fetch")
 async def fetch_and_store(city : str ="Tel Aviv"):
+    print(f"🌐 fetching weather for {city}")
     data = await fetch_weather(city=city)
     await save_record(data)
+    print(f"🌐 done fetching weather for {city}")
     return {"status": "ok"}
+
+
+@app.get("/weather/history")
+async def get_weather_history(city: str = "Tel Aviv"):
+    records = await get_city_records_history(city)
+    if not records:
+        raise HTTPException(status_code=404, detail=f"No history found for city '{city}'")
+    return records
+
 
 @app.delete("/weather")
 async def delete_all_weather():

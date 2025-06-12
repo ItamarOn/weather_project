@@ -52,3 +52,30 @@ async def delete_all_records():
     result = await db.weather.delete_many({})
     print(f'Deleted {result.deleted_count} records from MongoDB')
     return {"status": "ok", "deleted_count": result.deleted_count}
+
+
+async def get_all_cities():
+    print(f"🌐 get all cities from DB")
+    cities = await db.weather.distinct("city")
+    print(f'cities: {cities}')
+    return cities
+
+
+async def get_city_records_history(city: str, limit: int = 100):
+    """ will return list of temps"""
+    print(f"🌐 get city records history for {city}")
+    records = await db.weather.find({"city": city}).sort("timestamp", -1).to_list(length=limit)
+    if not records:
+        print(f"No records found for city: {city}")
+        return []
+
+    historic_temps = [rec["temp"] for rec in records]
+    latest_record = records[0]['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+    earliest_record = records[-1]['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+
+    return {
+        "city": city,
+        "historic_temps": historic_temps,
+        "latest_record": latest_record,
+        "earliest_record": earliest_record,
+    }
