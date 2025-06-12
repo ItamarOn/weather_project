@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from app.client import fetch_weather
 from app.db import init_db
+from app.schema import WeatherRecordOut,  WeatherRecordHistoryOut
 from app.crud import save_record, get_updated_record, delete_all_records, get_city_records_history
 
 
@@ -22,8 +23,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/weather")
-async def get_weather(city : str ="Tel Aviv"):
+
+@app.get("/weather", response_model=WeatherRecordOut)
+async def get_weather(city : str ="Tel Aviv") -> WeatherRecordOut:
     if not (last_record := await get_updated_record(city)):
         raise HTTPException(status_code=404, detail=f"No weather data in DB for city '{city}'")
     return last_record
@@ -35,11 +37,11 @@ async def fetch_and_store(city : str ="Tel Aviv"):
     data = await fetch_weather(city=city)
     await save_record(data)
     print(f"🌐 done fetching weather for {city}")
-    return {"status": "ok"}
+    return
 
 
-@app.get("/weather/history")
-async def get_weather_history(city: str = "Tel Aviv"):
+@app.get("/weather/history", response_model=WeatherRecordHistoryOut)
+async def get_weather_history(city: str = "Tel Aviv") -> WeatherRecordHistoryOut:
     records = await get_city_records_history(city)
     if not records:
         raise HTTPException(status_code=404, detail=f"No history found for city '{city}'")

@@ -67,15 +67,11 @@ async def get_city_records_history(city: str, limit: int = 100):
     records = await db.weather.find({"city": city}).sort("timestamp", -1).to_list(length=limit)
     if not records:
         print(f"No records found for city: {city}")
-        return []
-
-    historic_temps = [rec["temp"] for rec in records]
-    latest_record = records[0]['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
-    earliest_record = records[-1]['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+        return {}
 
     return {
         "city": city,
-        "historic_temps": historic_temps,
-        "latest_record": latest_record,
-        "earliest_record": earliest_record,
+        "historic_temps": [rec["temp"] for rec in records],
+        "latest_record": records[0]['timestamp'],
+        "earliest_record": records[-1]['timestamp'],
     }
